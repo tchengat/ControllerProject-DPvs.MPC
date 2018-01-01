@@ -11,3 +11,5 @@ The files used for this project are uploaded in the project file. All files are 
 
 ### Video
 https://youtu.be/1-oKZB9Uyjo
+### Matlab Published
+https://tchengat.github.io/ControllerProject-DPvs.MPC/
