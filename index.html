@@ -1,0 +1,905 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Developing an Optimal Controller for Energy Minimization of an Electric Car</title><meta name="generator" content="MATLAB 9.3"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2017-12-31"><meta name="DC.source" content="Final_MPC_Script.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1>Developing an Optimal Controller for Energy Minimization of an Electric Car</h1><!--introduction--><p><b>ME231A/EE220B Fall 2017 Final Project</b></p><p><b><i>AUTHORS</i></b></p><p><i>Paaras Agrawal, Ehsan Arasteh, Thomas Chengattu, Chahal Neema, and Jared O'Leary</i></p><p>Abstract-Designing energy-efficient optimal controllers for vehicle control is an essential step towards achieving a ubiquitous, environmentally-friendly autonomous transportation model. This study explores the design and implementation of optimal control strategies that minimize the energy used by an electric car traversing a pre-established roadway. The explored control strategies dictate the vehicle's output driving force as a function of its position on the chosen roadway through the minimization of a highly non-linear cost function that is representative of total energy use. The cost function is formulated subject to speed constraints (due to road speed limits), power limitations (due to physical limitations in the motor) and non-linear system dynamics that describe the vehicle's speed as a function of driving force and road position. The study investigates the efficacy of several control strategies based on Dynamic Programming (DP) and Model Predictive Control (MPC) approaches and compares the respective results. This study finally analyzes the feasibility and pragmatism of implementing the above control approaches in various real-world scenarios. A github repo of the code we used can be found <a href="https://github.com/tchengat/ControllerProject-DPvs.MPC">here.</a> A summary video has been recorded on <a href="https://youtu.be/1-oKZB9Uyjo">youtube</a></p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Purpose of Documentation</a></li><li><a href="#2">Intution For the Problem.</a></li><li><a href="#4">Creating a Representative Model for Route Planning</a></li><li><a href="#5">Developing a DP Controller Model</a></li><li><a href="#16">Developing an MPC Controller Model</a></li><li><a href="#22">Attribution</a></li></ul></div><h2 id="1">Purpose of Documentation</h2><p>The following documentation is used to highlight the MATLAB methods used for the Final Project Case study. The results and findings of the report are highlighted in a seperate report. Therefore the contents of this report is to purely show the sequence of code used during our project.</p><pre class="codeinput">clear;clc;close <span class="string">all</span>;
+</pre><h2 id="2">Intution For the Problem.</h2><p>When cars typically go up hills, they tend to slow down, as the force of gravity increasingly becomes a problem. The opposite happes as it rolls down a hill. We started with this intuitive understanding and modeled what our velocity profiles may look like when faced with height variations.</p><pre class="codeinput">dt = 0.01;
+T_final = 5;
+T0 = 0;
+t = T0:dt:T_final;
+X = linspace(0,60,numel(t));
+Y = zeros(numel(t),1);
+theta = size(numel(X),1); <span class="comment">% Slope</span>
+
+<span class="keyword">for</span> i=1:numel(X)
+    <span class="keyword">if</span> 0&lt;=X(i) &amp;&amp; X(i)&lt;=10
+        Y(i) = 0;
+        theta(i) = 0;
+        V(i) = 50;
+    <span class="keyword">elseif</span> 10&lt;=X(i) &amp;&amp; X(i)&lt;=20
+        Y(i) = 0.5*(X(i)-10);
+        theta(i) = atan(0.5);
+        V(i) = -2*(X(i)-10)+50;
+    <span class="keyword">elseif</span> 20&lt;=X(i) &amp;&amp; X(i)&lt;=30
+        Y(i) = 5;
+        theta(i) = 0;
+        V(i) = 2*(X(i)-20)+30;
+    <span class="keyword">elseif</span> 30&lt;=X(i) &amp;&amp; X(i)&lt;=35
+        Y(i) = -(X(i)-30)+5;
+        theta(i) = atan(-1);
+        V(i) = 4*(X(i)-30)+50;
+    <span class="keyword">else</span>
+        Y(i) = 0;
+        theta(i) = 0;
+        V(i) = 70;
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+
+L = 60; <span class="comment">% Length of the road</span>
+V_mean = L/(T_final-T0);
+
+figure (1)
+plot(X,Y)
+title(<span class="string">'Height Profile'</span>)
+
+figure (2)
+plot(t,V)
+title(<span class="string">'Velocity Profile'</span>)
+</pre><img vspace="5" hspace="5" src="Final_MPC_Script_01.png" alt=""> <img vspace="5" hspace="5" src="Final_MPC_Script_02.png" alt=""> <p>We developed our initial models based on this intuitive understanding. Using dynamics equations, we proceeded to create the equations which would be used in our study. Much of these models were developed using the midterm examinations found in our class, and credit is soley due to our professor Francesco Borrelli.</p><p>The following figure shows a free-body diagram that explains the major forces acting on our vehicle. The vehicle is subject to some dissipative aerodynamic force Fair, rolling resistance Froll, resistance due to the horizontal component of gravity Fg-x and would be propelled forward by the electric motor, providing a force, Fdrive.</p><p><img vspace="5" hspace="5" src="pic1.png" alt=""> </p><p>In order to minimize the amount of energy consumed by our car as it traverses across a roadway, we must minimize the Fdrive of the vehicle. We defined a cost function as follows that reflects this desire to minimize energy:</p><h2 id="4">Creating a Representative Model for Route Planning</h2><p>The path was created using an online path creator</p><pre class="language-matlab">
+T=gpxread(<span class="string">'path.gpx'</span>);
+states = geoshape(shaperead(<span class="string">'usastatehi'</span>, <span class="string">'UseGeoCoords'</span>, true));
+latlim = [min(T.Latitude) max(T.Latitude)];
+lonlim = [min(T.Longitude) max(T.Longitude)];
+ocean = [0.7 0.8 1]; land = [0.9 0.9 0.8];
+<span class="comment">%% Overlay the GPS points on the map.</span>
+webmap(<span class="string">'World Street Map'</span>, <span class="string">'WrapAround'</span>, false)
+colors = {<span class="string">'red'</span>};
+wmline(T, <span class="string">'Color'</span>, colors)
+wmlimits(latlim, lonlim)
+<span class="comment">%% Overlay the GPS points on the map.</span>
+figure
+ax = usamap(latlim-[0.01,-.01], lonlim-[.01,-.01]);
+setm(ax, <span class="string">'FFaceColor'</span>, ocean)
+geoshow(states,<span class="string">'FaceColor'</span>,land)
+geoshow(T.Latitude,T.Longitude,<span class="string">'DisplayType'</span>,<span class="string">'Point'</span>,<span class="string">'Marker'</span>,<span class="string">'.'</span>,<span class="keyword">...</span>
+    <span class="string">'MarkerSize'</span>,4,<span class="string">'MarkerEdgeColor'</span>,[0 0 1])
+title(<span class="string">'Trip Data'</span>)
+xlabel(<span class="string">'Bay Area'</span>)<span class="comment">%%</span>
+
+</pre><p>Using this path, the profile for our function was created.</p><pre class="language-matlab">
+<span class="keyword">function</span> [p,slope,lat,lon,el] = gpxtoPandSlope(filename)
+<span class="comment">% This function converts the raw path data into usable position and slope. </span>
+<span class="comment">% It returns p- distance from initial point and slope- sin(theta) at p.</span>
+
+file=gpxread(filename);         <span class="comment">% read the gps file </span>
+points=numel(file.Latitude);    <span class="comment">% extract number of discrete points by measuring latitude points</span>
+
+lat=file.Latitude;              <span class="comment">% read latitudes</span>
+lon=file.Longitude;             <span class="comment">% read longitudes</span>
+el=file.Elevation;              <span class="comment">% read elevations</span>
+p=zeros(points,1);              <span class="comment">% initialize position </span>
+
+noise_slope=zeros(points,1);    <span class="comment">% initialize raw slope array</span>
+<span class="keyword">for</span> i=1:points-1
+   [a,b]=distance(lat(i+1),lon(i+1),lat(i),lon(i)); <span class="comment">% Assigns arclen in degrees and azimuthal to a and b to  </span>
+   deltaP=a*111120;                                 <span class="comment">% Converts arclen into meters</span>
+   deltaH=el(i+1)-el(i);                            <span class="comment">% Slope </span>
+   <span class="keyword">if</span> deltaP&gt;1                                      <span class="comment">% To avoid small deltaP blowing up the slope</span>
+        noise_slope(i)= deltaH/sqrt(deltaH^2+deltaP^2); <span class="comment">% sin(theta)</span>
+   <span class="keyword">else</span>
+        noise_slope(i)=noise_slope(i-1); <span class="comment">% Assign slope to the region with small deltaP</span>
+   <span class="keyword">end</span>
+        p(i+1)=p(i)+deltaP;             <span class="comment">% Increment position</span>
+<span class="keyword">end</span>
+slope=medfilt1(noise_slope,3);          <span class="comment">% Smoothen slope values</span>
+
+
+</pre><p><img vspace="5" hspace="5" src="pic2.png" alt=""> </p><h2 id="5">Developing a DP Controller Model</h2><p>The DP approach involves discretizing the state (i.e., speed, v), input (i.e., driving force Fdrive), and position spaces to generate a look-up table that correlates the measured speed at a given position to the optimal input. This approach should produce not only the best solution, but rather all the solutions possible.</p><div><ul><li><b>1. Define Parameters</b></li></ul></div><pre class="codeinput">tic
+load <span class="string">NewAshbytoBerk</span>
+g = 9.8;                            <span class="comment">% Gravitational acceleration in m/s^2</span>
+M = 2000;                           <span class="comment">% Mass of car in kg</span>
+A = 200;                            <span class="comment">% Rolling resistance coeffcient in N</span>
+B = 5.5;                            <span class="comment">% Drivetrain losses in Ns/m</span>
+C = 0.39;                           <span class="comment">% Aerodynamic drag coeffcient in N(s^2)/(m^2)</span>
+umax = 880;                         <span class="comment">% Max input force in N</span>
+umin = -880;                        <span class="comment">% Minimum input force (think of this as 'max' breaking, thus negative acceleration and subsequently force) in N;</span>
+minspeed = 3;                       <span class="comment">% Minimum velocity of car in m/s (~10 km/h);</span>
+maxspeed = 30;                      <span class="comment">% Maximum velocity of car in m/s (~100 km/h);</span>
+R=0.4;                              <span class="comment">% Radius of wheel in m</span>
+gr=6;                               <span class="comment">% Gear ratio</span>
+n=4;                                <span class="comment">% Number of motors</span>
+delta_F= 1*gr/R*n;                  <span class="comment">% Grid distance force</span>
+delta_v= 10*R/gr*2*(pi/60);         <span class="comment">% Grid distance velocity</span>
+Fgrid= delta_F:delta_F:88*delta_F;
+vgrid= delta_v:delta_v:1000*delta_v;
+E_grid=load(<span class="string">'Motor_data.mat'</span>);
+E_grid = E_grid.Motor_data;
+j = 2;
+
+<span class="keyword">for</span> i=1:size(E_grid,2)-1
+    <span class="keyword">if</span> i == 1;
+    NewEGrid(:,i) = E_grid(:,i);
+    <span class="keyword">end</span>
+    <span class="keyword">if</span> rem(i,10) == 0
+    Store = E_grid(:,i);
+    NewEGrid(:,j)=Store;
+    j = j+1;
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+E_grid = NewEGrid;
+<span class="comment">%}</span>
+</pre><p>% Run the following when including with Efficiency</p><pre class="codeinput"><span class="comment">%E_grid = [flipud(E_grid);E_grid(88,:);E_grid];</span>
+<span class="comment">%Fgrid = [fliplr(Fgrid),0,-Fgrid];</span>
+</pre><div><ul><li><b>2. Grid states and inputs</b></li></ul></div><pre class="codeinput">vpoints = 40;
+v_sampled = linspace(minspeed,maxspeed,vpoints); <span class="comment">% Grid from minspeed to maxspeed</span>
+upoints = 30;
+u_sampled = linspace(umin,umax,upoints);         <span class="comment">% Grid from minimum to max force</span>
+<span class="comment">%}</span>
+</pre><div><ul><li><b>3. Grid position</b></li></ul></div><pre class="codeinput">track_length = profile(end,1);                  <span class="comment">% in meters</span>
+dp = 10;                                        <span class="comment">% Sampling in space</span>
+p_sampled = 0:dp:track_length;                  <span class="comment">% Sampled train position</span>
+N_p = length(p_sampled);
+<span class="comment">%}</span>
+</pre><div><ul><li><b>4. Create Arrays to save cost and inputs</b></li></ul></div><pre class="codeinput">Jsave = cell(N_p,1);
+USave = cell(N_p,1);
+Jtogo = cell(N_p+1,1);
+Uopt = cell(N_p,1);
+<span class="comment">%}</span>
+</pre><div><ul><li><b>5. Define anononymous functions</b></li></ul></div><pre class="codeinput">computeVNext = @(v,u,p) v+dp/(v*M)*(-A-B*v-C*v^2-M*g*slope(p,profile)+u);
+efficiency = @(u,v) interpn(Fgrid,vgrid,E_grid,u,v);
+Jstage = @(u,v) (((u+abs(u))/2)+(abs(u)-u))*dp
+Jtogo{end} = @(x) x*0;
+</pre><p>Run the following when including with Efficiency</p><pre class="codeinput"><span class="comment">% Jstage = @(u,v) (((u+abs(u))/2)+(abs(u)-u))*dp/efficiency(u,v);</span>
+<span class="comment">% Jstage = @(u,v) abs(u)*dp/efficiency(u,v);</span>
+<span class="comment">% Jstage = @(u,v) u*dp/efficiency(abs(u),v);</span>
+<span class="comment">%}</span>
+</pre><div><ul><li><b>6. Dynamic Programming</b></li></ul></div><pre class="codeinput"><span class="keyword">for</span> pIndex = N_p:-1:1
+    J = nan(vpoints,1);
+    UGR = nan(vpoints,1);
+    <span class="keyword">for</span> i = 1:vpoints
+            vt = v_sampled(i) ;
+            Jbest = inf;
+            Ubest = nan;
+        <span class="keyword">for</span> j=u_sampled
+            ut = j;
+            vnext = computeVNext(vt,ut,pIndex);
+            <span class="keyword">if</span> vnext&lt;minspeed || vnext&gt;maxspeed
+                <span class="keyword">continue</span>;
+            <span class="keyword">end</span>
+
+            Jt = Jstage(ut,vt)+Jtogo{pIndex+1}(vnext);
+
+            <span class="keyword">if</span> isnan(Jt)
+                <span class="keyword">continue</span>;
+            <span class="keyword">end</span>
+            <span class="keyword">if</span> Jt &lt; Jbest
+                Jbest = Jt;
+                Ubest = ut;
+            <span class="keyword">end</span>
+        <span class="keyword">end</span>
+        J(i) = Jbest;
+        UGR(i) = Ubest;
+    <span class="keyword">end</span>
+    Jsave{pIndex} = J;
+    USave{pIndex} = UGR;
+    Jtogo{pIndex} = @(v) interpn(v_sampled,J,v,<span class="string">'linear'</span>);
+    UOpt{pIndex} = @(v) interpn(v_sampled,UGR,v,<span class="string">'linear'</span>);
+<span class="keyword">end</span>
+save(<span class="string">'NegSlope20BrakingSmallMotorAshtoBerk.mat'</span>)
+<span class="comment">%}</span>
+</pre><pre class="codeoutput">
+Jstage =
+
+  function_handle with value:
+
+    @(u,v)(((u+abs(u))/2)+(abs(u)-u))*dp
+
+</pre><div><ul><li><b>7. Plotting</b></li></ul></div><pre class="codeinput">load(<span class="string">'NegSlope20BrakingSmallMotorAshtoBerk.mat'</span>)
+V0=10;
+
+VSim = zeros(1,N_p+1);
+VSim(:,1) = V0;
+USim = zeros(1,N_p);
+JSim = zeros(1,N_p);
+sl = zeros(1,N_p);
+
+<span class="keyword">for</span> t = 1:N_p-1
+    USim(:,t) = UOpt{t}(VSim(:,t));
+    <span class="keyword">if</span> any(isnan(USim(:,t)))
+        disp(<span class="string">'infeasible'</span>)
+    <span class="keyword">break</span>;
+    <span class="keyword">end</span>
+    VSim(:,t+1) = computeVNext(VSim(:,t),USim(:,t),p_sampled(t));
+    JSim(t) = Jstage(USim(:,t),VSim(:,t));
+    sl(t)=slope(p_sampled(t),profile);
+<span class="keyword">end</span>
+
+figure (5)
+subplot(3,1,1)
+plot(p_sampled,VSim(1:end-1))
+xlabel(<span class="string">'Distance (m)'</span>)
+ylabel(<span class="string">'Speed (m/s)'</span>)
+title(<span class="string">'Velocity Trace'</span>)
+hold <span class="string">on</span>
+subplot(3,1,2)
+plot(p_sampled,USim);
+xlabel(<span class="string">'Distance (m)'</span>)
+ylabel(<span class="string">'Drive Force (kN)'</span>)
+title(<span class="string">'Optimal Input'</span>)
+hold <span class="string">on</span>
+subplot(3,1,3)
+plot(p_sampled,sl)
+xlabel(<span class="string">'Distance (m)'</span>)
+ylabel(<span class="string">'Slope Change'</span>)
+title(<span class="string">'Road Grade'</span>)
+hold <span class="string">on</span>
+</pre><p>Loading the Efficiency Data</p><pre class="codeinput">load(<span class="string">'NegSlope20BrakingSmallMotorAshtoBerkEff.mat'</span>)
+V0=10;
+VSim = zeros(1,N_p+1);
+VSim(:,1) = V0;
+USim = zeros(1,N_p);
+JSim = zeros(1,N_p);
+sl = zeros(1,N_p);
+
+<span class="keyword">for</span> t = 1:N_p-1
+    USim(:,t) = UOpt{t}(VSim(:,t));
+    <span class="keyword">if</span> any(isnan(USim(:,t)))
+        disp(<span class="string">'infeasible'</span>)
+    <span class="keyword">break</span>;
+    <span class="keyword">end</span>
+    VSim(:,t+1) = computeVNext(VSim(:,t),USim(:,t),p_sampled(t));
+    JSim(t) = Jstage(USim(:,t),VSim(:,t));
+    sl(t)=slope(p_sampled(t),profile);
+<span class="keyword">end</span>
+JSum = sum(JSim);
+subplot(3,1,1)
+plot(p_sampled,VSim(1:end-1))
+xlabel(<span class="string">'Distance (m)'</span>)
+ylabel(<span class="string">'Speed (m/s)'</span>)
+title(<span class="string">'Velocity Trace'</span>)
+legend (<span class="string">'Eff=1'</span>,<span class="string">'Eff Included'</span>)
+subplot(3,1,2)
+plot(p_sampled,USim);
+xlabel(<span class="string">'Distance (m)'</span>)
+ylabel(<span class="string">'Drive Force (kN)'</span>)
+title(<span class="string">'Optimal Input'</span>)
+subplot(3,1,3)
+plot(p_sampled,sl)
+xlabel(<span class="string">'Distance (m)'</span>)
+ylabel(<span class="string">'Slope Change'</span>)
+title(<span class="string">'Road Grade'</span>)
+<span class="comment">%toc;</span>
+fprintf(<span class="string">'Elapsed time is 177.555808 seconds.'</span>)
+hold <span class="string">off</span>
+</pre><pre class="codeoutput">Elapsed time is 177.555808 seconds.</pre><img vspace="5" hspace="5" src="Final_MPC_Script_03.png" alt=""> <h2 id="16">Developing an MPC Controller Model</h2><p>The MPC approach first solves an optimal control problem over a chosen prediction horizon given a measured speed at a position. The solution to this optimal control problem is a sequence of optimal inputs over the prediction horizon. The first input in this sequence is then applied to the system and the new state of the system becomes the initial state for the next optimal control problem. This pattern is then repeated over the entire length of the chosen roadway</p><div><ul><li><b>1. Define Parameters</b></li></ul></div><p>load NewAshbytoBerk.mat profile=[po,slo];</p><pre class="codeinput">track_length=profile(end,1);
+dp=10;
+p_s=0:dp:track_length;
+Mpc=numel(p_s); <span class="comment">% MPC Horizon</span>
+N=3; <span class="comment">% Batch Horizon</span>
+v0=10;
+vOpt(1)=v0;
+objective=0;
+g = 9.8; <span class="comment">% gravitational acceleration in m/s^2</span>
+M = 2000; <span class="comment">% mass of car in kg</span>
+A = 200; <span class="comment">% rolling resistance coeffcient in N</span>
+B = 5.5; <span class="comment">% drivetrain losses in Ns/m</span>
+C = 0.39; <span class="comment">% aerodynamic drag coeffcient in N(s^2)/(m^2)</span>
+R=0.4; <span class="comment">%radius of wheel in m</span>
+gr=6;  <span class="comment">%gear ratio</span>
+n=4;   <span class="comment">%number of motors</span>
+</pre><div><ul><li><b>2. Efficiency Values</b></li></ul></div><pre class="codeinput">E_grid=load(<span class="string">'Motor_data.mat'</span>);
+E_grid = E_grid.Motor_data;
+delta_F= 1*gr/R*n; <span class="comment">% grid distance force</span>
+delta_v= 1*R/gr*2*(pi/60); <span class="comment">% grid distance velocity</span>
+Fgrid= delta_F:delta_F:88*delta_F;
+vgrid= delta_v:delta_v:10000*delta_v;
+</pre><div><ul><li><b>3. Batch Approach Function</b></li></ul></div><pre class="language-matlab">
+<span class="keyword">function</span> [feas vOpt uOpt]= car_batch(N, v0,p_sampled,dp,vgrid,Fgrid,E_grid,profile)
+<span class="comment">%clear all;</span>
+
+<span class="comment">%% Define parameters</span>
+<span class="comment">%load TrainDataNew</span>
+g = 9.8; <span class="comment">% gravitational acceleration in m/s^2</span>
+M = 2000; <span class="comment">% mass of car in kg</span>
+A = 200; <span class="comment">% rolling resistance coeffcient in N</span>
+B = 5.5; <span class="comment">% drivetrain losses in Ns/m</span>
+C = 0.39; <span class="comment">% aerodynamic drag coeffcient in N(s^2)/(m^2)</span>
+R=0.4; <span class="comment">%radius of wheel in m</span>
+gr=6;  <span class="comment">%gear ratio</span>
+n=4;   <span class="comment">%number of motors</span>
+
+<span class="comment">%% function arguments</span>
+vMin= 3; <span class="comment">%m</span>
+vMax= 30; <span class="comment">%m</span>
+<span class="comment">%%</span>
+<span class="comment">% Define state matrix(velocity)</span>
+v= sdpvar(1,N+1);
+<span class="comment">% Define decision variables</span>
+u = sdpvar(1,N);
+
+<span class="comment">% Define objective function and constraints</span>
+uMin = -880; <span class="comment">% N</span>
+uMax = 880; <span class="comment">% N</span>
+
+<span class="comment">% Define anonymous function</span>
+computeVNext = @(v,u,p) v+dp/(v*M)*(-A-B*v-C*v^2-M*g*slope(p,profile)+u);
+objective=0;
+constraints=[];
+
+
+efficiency = @(f,v) interp2(Fgrid,vgrid,E_grid,f,v);
+
+<span class="comment">%% run optimization</span>
+<span class="keyword">for</span> i=1:N
+    <span class="comment">%objective= objective + ((u(i)+abs(u(i)))/2+(abs(u(i))-u(i)))*dp/efficiency(u(i),v(i));</span>
+   <span class="comment">%objective= objective + ((u(i)+abs(u(i)))/2+(abs(u(i))-u(i)))*dp;</span>
+    objective= objective + u(i)*dp;
+    
+    constraints = [constraints vMin&lt;=v(i)&lt;=vMax uMin&lt;=u(i)&lt;=uMax v(i+1)==computeVNext(v(i),u(i),p_sampled(i))];
+    sl(i)=slope(p_sampled(i),profile);
+<span class="keyword">end</span>
+constraints = [constraints v(1)==v0];
+
+<span class="comment">% Set options for YALMIP and solver</span>
+options = sdpsettings(<span class="string">'verbose'</span>,0,<span class="string">'solver'</span>,<span class="string">'fmincon'</span>,<span class="string">'usex0'</span>,0,<span class="string">'cachesolvers'</span>, 1);
+
+<span class="comment">% Solve</span>
+sol = optimize(constraints, objective,options);
+
+feas=sol.problem;
+vOpt=value(v);
+uOpt=value(u);
+<span class="keyword">end</span>
+
+
+
+</pre><div><ul><li><b>4. MPC Controller</b></li></ul></div><pre class="codeinput"><span class="keyword">for</span> i=1:Mpc
+    <span class="keyword">if</span> i&lt;Mpc-N
+        p_sampled= p_s(i:i+N);
+        [feas(i), vOpt_ol, uOpt_ol] = car_batch(N,v0,p_sampled,dp,vgrid,Fgrid,E_grid,profile);
+        vOpt(i+1)=vOpt_ol(2);
+        uOpt(i)=uOpt_ol(1);
+        v0=vOpt(i+1);
+
+        <span class="keyword">if</span> feas &gt; 0
+            <span class="keyword">break</span>;
+        <span class="keyword">end</span>
+    <span class="keyword">end</span>
+    <span class="keyword">if</span> i==Mpc-N
+        p_sampled=p_s(i:i+N)
+        [feas(i), vOpt_ol, uOpt_ol] = car_batch(N,v0,p_sampled,dp,vgrid,Fgrid,E_grid,profile);
+        vOpt(i+1:i+N)=vOpt_ol(2:end);
+        uOpt(i:i+N-1)=uOpt_ol;
+    <span class="keyword">end</span>
+       sl(i)=slope(p_s(i),profile);
+       <span class="keyword">if</span> i&lt;Mpc
+            objective= objective + ((uOpt(i)+abs(uOpt(i)))/2+ (abs(uOpt(i))-uOpt(i)))*dp;
+       <span class="keyword">end</span>
+
+<span class="keyword">end</span>
+</pre><div><ul><li><b>5. Plotting</b></li></ul></div><pre class="codeinput">subplot(3,1,1)
+plot(p_s(1:Mpc),vOpt(1:Mpc))
+legend (<span class="string">'Eff=1'</span>,<span class="string">'Eff Included'</span>,<span class="string">'Fmincon MPC'</span>)
+ylabel(<span class="string">'Speed (m/s)'</span>)
+subplot(3,1,2)
+ylabel(<span class="string">'Force (N)'</span>)
+plot(p_s(1:Mpc-1),uOpt(1:Mpc-1))
+subplot(3,1,3)
+ylabel(<span class="string">'Slope'</span>)
+plot(p_s(1:Mpc),sl(1:Mpc))
+xlabel(<span class="string">'Distance (m)'</span>)
+</pre><pre class="codeoutput">
+p_sampled =
+
+        4140        4150        4160        4170
+
+</pre><img vspace="5" hspace="5" src="Final_MPC_Script_04.png" alt=""> <p>The optimal input and state trajectories for the three scenarios outlined above are shown in the top two graphs in Figure 4 below. The bottom graph demonstrates the changes in slope as a function of position along the chosen pathway. Scenario #1 (DP control approach that properly accounts for efficiency) yields expected results, as the speed almost inversely scales with slope, and the upper constraints on speed limits are easily met. Scenarios #2-3 on the other hand (i.e., MPC and DP assuming <img src="Final_MPC_Script_eq17615028512695387165.png" alt="$\eta$">= 1) demonstrate that incorporating the powertrain efficiency function described earlier significantly changes the optimal speed profile. As seen from Fig. 2, lower input torque and lower motor speeds yield lower efficiency values. As a result, low speeds and low driving force do not necessarily imply minimum cost because efficiency penalizes the cost if the driving force and the speed are low. Physically, this means that going too slow may not be the best way to save energy.</p><p><img vspace="5" hspace="5" src="pic3.png" alt=""> </p><h2 id="22">Attribution</h2><p>Paaras Agrawal, Ehsan Arasteh, Thomas Chengattu, Chahal Neema, and Jared O'Leary</p><pre class="codeinput"><span class="comment">% | 09/09/17 | Class # 39895</span>
+</pre><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2017b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Developing an Optimal Controller for Energy Minimization of an Electric Car
+% *ME231A/EE220B Fall 2017 Final Project*
+% 
+% *_AUTHORS_* 
+% 
+% _Paaras Agrawal, Ehsan Arasteh, Thomas Chengattu, Chahal Neema, and Jared O'Leary_ 
+% 
+% Abstract-Designing energy-efficient optimal controllers for
+% vehicle control is an essential step towards achieving a ubiquitous,
+% environmentally-friendly autonomous transportation model.
+% This study explores the design and implementation of optimal
+% control strategies that minimize the energy used by an electric
+% car traversing a pre-established roadway. The explored control
+% strategies dictate the vehicle's output driving force as a function
+% of its position on the chosen roadway through the minimization
+% of a highly non-linear cost function that is representative of total
+% energy use. The cost function is formulated subject to speed
+% constraints (due to road speed limits), power limitations (due to
+% physical limitations in the motor) and non-linear system dynamics
+% that describe the vehicle's speed as a function of driving force
+% and road position. The study investigates the efficacy of several
+% control strategies based on Dynamic Programming (DP) and
+% Model Predictive Control (MPC) approaches and compares the
+% respective results. This study finally analyzes the feasibility and
+% pragmatism of implementing the above control approaches in
+% various real-world scenarios. A github repo of the code we used can be found 
+% <https://github.com/tchengat/ControllerProject-DPvs.MPC here.> 
+% A summary video has been recorded on 
+% <https://youtu.be/1-oKZB9Uyjo youtube>
+%% Purpose of Documentation
+% The following documentation is used to highlight the MATLAB methods used
+% for the Final Project Case study. The results and findings of the report
+% are highlighted in a seperate report. Therefore the contents of this report 
+% is to purely show the sequence of code used during our project. 
+clear;clc;close all;
+%% Intution For the Problem.
+% When cars typically go up hills, they tend to slow down, as the force of
+% gravity increasingly becomes a problem. The opposite happes as it rolls 
+% down a hill. We started with this intuitive understanding and modeled 
+% what our velocity profiles may look like when faced with height variations. 
+
+dt = 0.01;
+T_final = 5;
+T0 = 0;
+t = T0:dt:T_final;
+X = linspace(0,60,numel(t));
+Y = zeros(numel(t),1);
+theta = size(numel(X),1); % Slope
+
+for i=1:numel(X)
+    if 0<=X(i) && X(i)<=10
+        Y(i) = 0;
+        theta(i) = 0;
+        V(i) = 50;
+    elseif 10<=X(i) && X(i)<=20
+        Y(i) = 0.5*(X(i)-10);
+        theta(i) = atan(0.5);
+        V(i) = -2*(X(i)-10)+50;
+    elseif 20<=X(i) && X(i)<=30
+        Y(i) = 5;
+        theta(i) = 0;
+        V(i) = 2*(X(i)-20)+30;
+    elseif 30<=X(i) && X(i)<=35
+        Y(i) = -(X(i)-30)+5;
+        theta(i) = atan(-1);
+        V(i) = 4*(X(i)-30)+50;
+    else
+        Y(i) = 0;
+        theta(i) = 0;
+        V(i) = 70;
+    end
+end
+
+L = 60; % Length of the road
+V_mean = L/(T_final-T0);
+
+figure (1)
+plot(X,Y)
+title('Height Profile')
+
+figure (2)
+plot(t,V)
+title('Velocity Profile')
+%%
+% We developed our initial models based on this intuitive understanding. 
+% Using dynamics equations, we proceeded to create the equations which
+% would be used in our study. Much of these models were developed using the
+% midterm examinations found in our class, and credit is soley due to our
+% professor Francesco Borrelli.
+%
+% The following figure shows a free-body diagram that explains the major 
+% forces acting on our vehicle. The vehicle is subject to some dissipative
+% aerodynamic force Fair, rolling resistance Froll, resistance due to the
+% horizontal component of gravity Fg-x and would be propelled forward by 
+% the electric motor, providing a force, Fdrive.
+% 
+% <<pic1.png>> 
+%
+% In order to minimize the amount of energy consumed by our car as it 
+% traverses across a roadway, we must minimize the Fdrive of the vehicle. 
+% We defined a cost function as follows that reflects this desire to 
+% minimize energy:
+%% Creating a Representative Model for Route Planning
+% The path was created using an online path creator
+% 
+% <include>newMap.m</include>
+%
+% Using this path, the profile for our function was created. 	
+% 
+% <include>gpxtoPandSlope.m</include>
+% 
+% <<pic2.png>> 
+%
+%% Developing a DP Controller Model
+% The DP approach involves discretizing the state (i.e., speed, v), input
+% (i.e., driving force Fdrive), and position spaces to generate a look-up 
+% table that correlates the measured speed at a given position to the 
+% optimal input. This approach should produce not only the best solution, 
+% but rather all the solutions possible.
+% 
+% * *1. Define Parameters*
+%
+
+tic 
+load NewAshbytoBerk
+g = 9.8;                            % Gravitational acceleration in m/s^2
+M = 2000;                           % Mass of car in kg
+A = 200;                            % Rolling resistance coeffcient in N
+B = 5.5;                            % Drivetrain losses in Ns/m
+C = 0.39;                           % Aerodynamic drag coeffcient in N(s^2)/(m^2) 
+umax = 880;                         % Max input force in N 
+umin = -880;                        % Minimum input force (think of this as 'max' breaking, thus negative acceleration and subsequently force) in N; 
+minspeed = 3;                       % Minimum velocity of car in m/s (~10 km/h); 
+maxspeed = 30;                      % Maximum velocity of car in m/s (~100 km/h); 
+R=0.4;                              % Radius of wheel in m
+gr=6;                               % Gear ratio  
+n=4;                                % Number of motors
+delta_F= 1*gr/R*n;                  % Grid distance force
+delta_v= 10*R/gr*2*(pi/60);         % Grid distance velocity
+Fgrid= delta_F:delta_F:88*delta_F;
+vgrid= delta_v:delta_v:1000*delta_v;
+E_grid=load('Motor_data.mat'); 
+E_grid = E_grid.Motor_data;
+j = 2; 
+ 
+for i=1:size(E_grid,2)-1
+    if i == 1; 
+    NewEGrid(:,i) = E_grid(:,i); 
+    end
+    if rem(i,10) == 0
+    Store = E_grid(:,i); 
+    NewEGrid(:,j)=Store; 
+    j = j+1; 
+    end 
+end    
+E_grid = NewEGrid; 
+%}
+%%%
+% % Run the following when including with Efficiency
+%E_grid = [flipud(E_grid);E_grid(88,:);E_grid];
+%Fgrid = [fliplr(Fgrid),0,-Fgrid];
+%%%
+% 
+% * *2. Grid states and inputs*
+%
+
+vpoints = 40;  
+v_sampled = linspace(minspeed,maxspeed,vpoints); % Grid from minspeed to maxspeed
+upoints = 30; 
+u_sampled = linspace(umin,umax,upoints);         % Grid from minimum to max force
+%}
+%%%
+% 
+% * *3. Grid position*
+%
+
+track_length = profile(end,1);                  % in meters
+dp = 10;                                        % Sampling in space
+p_sampled = 0:dp:track_length;                  % Sampled train position
+N_p = length(p_sampled);
+%}
+%%%
+% 
+% * *4. Create Arrays to save cost and inputs*
+%
+
+Jsave = cell(N_p,1); 
+USave = cell(N_p,1); 
+Jtogo = cell(N_p+1,1); 
+Uopt = cell(N_p,1);
+%}
+%%%
+% 
+% * *5. Define anononymous functions*
+%
+
+computeVNext = @(v,u,p) v+dp/(v*M)*(-A-B*v-C*v^2-M*g*slope(p,profile)+u); 
+efficiency = @(u,v) interpn(Fgrid,vgrid,E_grid,u,v); 
+Jstage = @(u,v) (((u+abs(u))/2)+(abs(u)-u))*dp
+Jtogo{end} = @(x) x*0;
+%%%
+% Run the following when including with Efficiency
+
+% Jstage = @(u,v) (((u+abs(u))/2)+(abs(u)-u))*dp/efficiency(u,v);  
+% Jstage = @(u,v) abs(u)*dp/efficiency(u,v);
+% Jstage = @(u,v) u*dp/efficiency(abs(u),v);  
+%}
+%%%
+% 
+% * *6. Dynamic Programming*
+% 
+
+for pIndex = N_p:-1:1
+    J = nan(vpoints,1); 
+    UGR = nan(vpoints,1); 
+    for i = 1:vpoints 
+            vt = v_sampled(i) ;     
+            Jbest = inf; 
+            Ubest = nan;
+        for j=u_sampled 
+            ut = j; 
+            vnext = computeVNext(vt,ut,pIndex); 
+            if vnext<minspeed || vnext>maxspeed
+                continue; 
+            end 
+                 
+            Jt = Jstage(ut,vt)+Jtogo{pIndex+1}(vnext); 
+            
+            if isnan(Jt)
+                continue; 
+            end 
+            if Jt < Jbest 
+                Jbest = Jt; 
+                Ubest = ut; 
+            end 
+        end 
+        J(i) = Jbest; 
+        UGR(i) = Ubest; 
+    end
+    Jsave{pIndex} = J; 
+    USave{pIndex} = UGR; 
+    Jtogo{pIndex} = @(v) interpn(v_sampled,J,v,'linear'); 
+    UOpt{pIndex} = @(v) interpn(v_sampled,UGR,v,'linear'); 
+end
+save('NegSlope20BrakingSmallMotorAshtoBerk.mat')
+%}
+%% 
+%%%
+% 
+% * *7. Plotting*
+% 
+load('NegSlope20BrakingSmallMotorAshtoBerk.mat')
+V0=10;
+
+VSim = zeros(1,N_p+1); 
+VSim(:,1) = V0; 
+USim = zeros(1,N_p); 
+JSim = zeros(1,N_p); 
+sl = zeros(1,N_p); 
+
+for t = 1:N_p-1
+    USim(:,t) = UOpt{t}(VSim(:,t)); 
+    if any(isnan(USim(:,t)))
+        disp('infeasible')
+    break; 
+    end 
+    VSim(:,t+1) = computeVNext(VSim(:,t),USim(:,t),p_sampled(t)); 
+    JSim(t) = Jstage(USim(:,t),VSim(:,t)); 
+    sl(t)=slope(p_sampled(t),profile);
+end 
+
+figure (5)
+subplot(3,1,1)
+plot(p_sampled,VSim(1:end-1))
+xlabel('Distance (m)')
+ylabel('Speed (m/s)')
+title('Velocity Trace')
+hold on
+subplot(3,1,2)
+plot(p_sampled,USim); 
+xlabel('Distance (m)')
+ylabel('Drive Force (kN)')
+title('Optimal Input')
+hold on
+subplot(3,1,3)
+plot(p_sampled,sl)
+xlabel('Distance (m)')
+ylabel('Slope Change')
+title('Road Grade') 
+hold on
+%%%
+% Loading the Efficiency Data
+load('NegSlope20BrakingSmallMotorAshtoBerkEff.mat')
+V0=10;
+VSim = zeros(1,N_p+1); 
+VSim(:,1) = V0; 
+USim = zeros(1,N_p); 
+JSim = zeros(1,N_p); 
+sl = zeros(1,N_p); 
+
+for t = 1:N_p-1
+    USim(:,t) = UOpt{t}(VSim(:,t)); 
+    if any(isnan(USim(:,t)))
+        disp('infeasible')
+    break; 
+    end 
+    VSim(:,t+1) = computeVNext(VSim(:,t),USim(:,t),p_sampled(t)); 
+    JSim(t) = Jstage(USim(:,t),VSim(:,t)); 
+    sl(t)=slope(p_sampled(t),profile);
+end 
+JSum = sum(JSim);
+subplot(3,1,1)
+plot(p_sampled,VSim(1:end-1))
+xlabel('Distance (m)')
+ylabel('Speed (m/s)')
+title('Velocity Trace')
+legend ('Eff=1','Eff Included')
+subplot(3,1,2)
+plot(p_sampled,USim); 
+xlabel('Distance (m)')
+ylabel('Drive Force (kN)')
+title('Optimal Input') 
+subplot(3,1,3)
+plot(p_sampled,sl)
+xlabel('Distance (m)')
+ylabel('Slope Change')
+title('Road Grade') 
+%toc;
+fprintf('Elapsed time is 177.555808 seconds.')
+hold off
+%% Developing an MPC Controller Model
+% The MPC approach first solves an optimal control problem over a chosen 
+% prediction horizon given a measured speed at a position. The solution to
+% this optimal control problem is a sequence of optimal inputs over the 
+% prediction horizon. The first input in this sequence is then applied to
+% the system and the new state of the system becomes the initial state for 
+% the next optimal control problem. This pattern is then repeated over the
+% entire length of the chosen roadway
+%%%
+% 
+% * *1. Define Parameters*
+%
+% load NewAshbytoBerk.mat
+% profile=[po,slo];
+track_length=profile(end,1);
+dp=10;
+p_s=0:dp:track_length;
+Mpc=numel(p_s); % MPC Horizon
+N=3; % Batch Horizon  
+v0=10;
+vOpt(1)=v0;
+objective=0;
+g = 9.8; % gravitational acceleration in m/s^2
+M = 2000; % mass of car in kg
+A = 200; % rolling resistance coeffcient in N
+B = 5.5; % drivetrain losses in Ns/m
+C = 0.39; % aerodynamic drag coeffcient in N(s^2)/(m^2)
+R=0.4; %radius of wheel in m
+gr=6;  %gear ratio
+n=4;   %number of motors
+%%%
+% 
+% * *2. Efficiency Values*
+%
+E_grid=load('Motor_data.mat');
+E_grid = E_grid.Motor_data;
+delta_F= 1*gr/R*n; % grid distance force
+delta_v= 1*R/gr*2*(pi/60); % grid distance velocity
+Fgrid= delta_F:delta_F:88*delta_F;
+vgrid= delta_v:delta_v:10000*delta_v;
+%%%
+% 
+% * *3. Batch Approach Function*
+%
+% <include>car_batch.m</include>
+% 
+% * *4. MPC Controller*
+%
+for i=1:Mpc
+    if i<Mpc-N
+        p_sampled= p_s(i:i+N);
+        [feas(i), vOpt_ol, uOpt_ol] = car_batch(N,v0,p_sampled,dp,vgrid,Fgrid,E_grid,profile);
+        vOpt(i+1)=vOpt_ol(2);
+        uOpt(i)=uOpt_ol(1);
+        v0=vOpt(i+1);
+        
+        if feas > 0 
+            break;
+        end
+    end
+    if i==Mpc-N
+        p_sampled=p_s(i:i+N)
+        [feas(i), vOpt_ol, uOpt_ol] = car_batch(N,v0,p_sampled,dp,vgrid,Fgrid,E_grid,profile);
+        vOpt(i+1:i+N)=vOpt_ol(2:end);
+        uOpt(i:i+N-1)=uOpt_ol;
+    end
+       sl(i)=slope(p_s(i),profile); 
+       if i<Mpc
+            objective= objective + ((uOpt(i)+abs(uOpt(i)))/2+ (abs(uOpt(i))-uOpt(i)))*dp;
+       end
+    
+end
+%%%
+% 
+% * *5. Plotting*
+%
+subplot(3,1,1)
+plot(p_s(1:Mpc),vOpt(1:Mpc))
+legend ('Eff=1','Eff Included','Fmincon MPC')
+ylabel('Speed (m/s)')
+subplot(3,1,2)
+ylabel('Force (N)')
+plot(p_s(1:Mpc-1),uOpt(1:Mpc-1))
+subplot(3,1,3)
+ylabel('Slope')
+plot(p_s(1:Mpc),sl(1:Mpc))
+xlabel('Distance (m)')
+%%
+% The optimal input and state trajectories for the three scenarios outlined 
+% above are shown in the top two graphs in Figure 4 below. The bottom graph 
+% demonstrates the changes in slope as a function of position along the 
+% chosen pathway. Scenario #1 (DP control approach that properly accounts 
+% for efficiency) yields expected results, as the speed almost inversely 
+% scales with slope, and the upper constraints on speed limits are easily 
+% met. Scenarios #2-3 on the other hand (i.e., MPC and DP assuming $\eta$= 1)
+% demonstrate that incorporating the powertrain efficiency function described 
+% earlier significantly changes the optimal speed profile. As seen from Fig.
+% 2, lower input torque and lower motor speeds yield lower efficiency values. 
+% As a result, low speeds and low driving force do not necessarily imply 
+% minimum cost because efficiency penalizes the cost if the driving force 
+% and the speed are low. Physically, this means that going too slow may not 
+% be the best way to save energy.
+% 
+% <<pic3.png>> 
+%
+
+%% Attribution
+% Paaras Agrawal, Ehsan Arasteh, Thomas Chengattu, Chahal Neema, and Jared O'Leary 
+%
+
+% | 09/09/17 | Class # 39895  
+##### SOURCE END #####
+--></body></html>
